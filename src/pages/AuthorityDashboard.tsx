@@ -3,7 +3,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import mapboxgl from 'mapbox-gl';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export const AuthorityDashboard: React.FC = () => {
     const { setMapMode } = useOutletContext<any>();
