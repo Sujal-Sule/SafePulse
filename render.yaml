@@ -2,7 +2,7 @@ services:
   - type: web
     name: womens-safety-backend
     runtime: python
-    runtimeVersion: 3.12
+    runtimeVersion: 3.11
     buildCommand: |
       pip install --upgrade pip setuptools wheel && \
       pip install --no-cache-dir -r backend/requirements.txt
