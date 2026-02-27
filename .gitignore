@@ -27,5 +27,6 @@ client_secret_*.json
 venv
 .env
 .env.local
+.env.production
 __pycache__/
 .agent
