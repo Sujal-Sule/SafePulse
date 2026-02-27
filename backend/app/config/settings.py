@@ -76,30 +76,21 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> List[str]:
         """
-        Build CORS origin list from:
-        1. Explicitly set CORS_ORIGINS if provided
-        2. FRONTEND_URL environment variable
-        3. Default dev origins
+        Build CORS origin list
         """
-        # If CORS_ORIGINS is explicitly set, use it
-        if self.CORS_ORIGINS:
-            return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-        
-        # Otherwise, build from FRONTEND_URL and allow dev origins
         origins = [
-            "http://localhost:5173",  # Vite default dev port
-            "http://localhost:3000",  # Alternative dev port
-            "http://localhost:8080",  # Another common dev port
-            self.FRONTEND_URL,        # Production frontend URL
+            "http://localhost:5173",
+            self.FRONTEND_URL
         ]
         
-        # Remove duplicates while preserving order
+        # Remove duplicates while preserving non-empty
         seen = set()
         unique_origins = []
         for origin in origins:
-            if origin and origin not in seen:
-                unique_origins.append(origin)
-                seen.add(origin)
+            o = origin.strip()
+            if o and o not in seen:
+                unique_origins.append(o)
+                seen.add(o)
         
         return unique_origins
 

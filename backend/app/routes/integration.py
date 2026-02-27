@@ -163,17 +163,9 @@ async def trigger_sos(
     if len(contact_phone) == 10:
         contact_phone = f"91{contact_phone}"
 
-    # If the request comes from Cloudflare tunnel, it will have x-forwarded-host or host
-    forwarded_host = request.headers.get("x-forwarded-host")
-    host = forwarded_host or request.headers.get("host") or "app.teamcodezilla.in"
-    scheme = request.headers.get("x-forwarded-proto", "https")
-    
-    # Check if the frontend passed a specific origin (like Vite dev server origin)
-    origin = request.headers.get("origin")
-    if origin and "localhost" not in origin and "127.0.0.1" not in origin:
-        domain = origin
-    else:
-        domain = f"{scheme}://{host}"
+    # Get domain from FRONTEND_URL environment variable
+    FRONTEND_URL = os.getenv("FRONTEND_URL", settings.FRONTEND_URL)
+    domain = FRONTEND_URL.rstrip('/')
         
     tracking_link = f"{domain}/track/{session_id}"
     message = f"🚨 SOS Alert\n{current_user.name} has triggered an emergency.\nLive location:\n{tracking_link}"
