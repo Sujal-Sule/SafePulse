@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Warn in development if API URL is not set
 if (!API_BASE_URL && import.meta.env.DEV) {
@@ -48,16 +48,16 @@ export const fetchRedZones = async (): Promise<RedZone[]> => {
     }
 };
 
-export const triggerSOS = async (latitude: number, longitude: number): Promise<{ status: string }> => {
+export const triggerSOS = async (latitude: number, longitude: number): Promise<{ status: string, session_id?: string, whatsapp_url?: string }> => {
     try {
         const token = localStorage.getItem('safepulse_auth_token') || sessionStorage.getItem('safepulse_auth_token');
-        const response = await fetch(API_BASE_URL + '/sos/trigger', {
+        const response = await fetch(API_BASE_URL + '/sos', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
             },
-            body: JSON.stringify({ lat: latitude, lng: longitude }),
+            body: JSON.stringify({ latitude, longitude }),
         });
 
         if (!response.ok) {
