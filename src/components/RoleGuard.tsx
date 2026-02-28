@@ -12,8 +12,12 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) 
     const { user, isAuthenticated, isLoading } = useAuth();
     const location = useLocation();
 
+    // Skip rendering while auth is still loading — ProtectedRoute already
+    // shows a loading screen, but RoleGuard may mount in the same render
+    // cycle. Return null (invisible) instead of a full-screen overlay so
+    // the map behind remains visible during the brief loading gap.
     if (isLoading) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-[#050505] text-white">Loading Auth...</div>;
+        return null;
     }
 
     if (!isAuthenticated || !user) {
