@@ -444,7 +444,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
             }));
 
             // Step 2: After Risk Scoring
-            const scoredRoutes = await Promise.all(processedRoutes.map(async (r) => {
+            let scoredRoutes = await Promise.all(processedRoutes.map(async (r) => {
                 const score = await scoreRoute(r.geometry);
                 return {
                     ...r,
@@ -482,7 +482,89 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
             });
 
             // Step 3: Route Selection (ID Based Only)
-            const bestId = bestSafeId || fallbackId;
+            let bestId = bestSafeId || fallbackId;
+
+            // Step 4: Multi-pass Detour calculation
+            // If we found NO safe routes, try forcing the Oracle to take a detour
+            if (!bestSafeId && candidateRoutes.length > 0) {
+                // Find the first high risk segment from the safest (fallback) route
+                const fallbackRoute = candidateRoutes.find(r => r.internalId === fallbackId);
+                const hrs = fallbackRoute?.high_risk_segments?.[0];
+
+                if (hrs && hrs.start && hrs.end) {
+                    console.log("Oracle: No safe routes found. Calculating detour...");
+
+                    // Simple geometrical detour: find the midpoint of the high risk segment,
+                    // and offset it by ~500m perpendicularly to force Mapbox to route around it.
+                    const midLat = (hrs.start.lat + hrs.end.lat) / 2;
+                    const midLng = (hrs.start.lng + hrs.end.lng) / 2;
+
+                    // Vector from start to end
+                    const dLat = hrs.end.lat - hrs.start.lat;
+                    const dLng = hrs.end.lng - hrs.start.lng;
+
+                    // Normalize vector
+                    const len = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
+                    const nx = dLng / len;
+                    const ny = dLat / len;
+
+                    // Perpendicular vector (-ny, nx) scaled to ~500m (roughly 0.0045 degrees)
+                    const offset = 0.005;
+                    const detourLat = midLat - nx * offset;
+                    const detourLng = midLng + ny * offset;
+
+                    try {
+                        const detourRaw = await fetchRoutes(uLoc, destination, [[detourLng, detourLat]]);
+                        const detourProcessed: ProcessedRoute[] = detourRaw.map((r: any) => ({
+                            internalId: crypto.randomUUID(),
+                            geometry: r.geometry,
+                            distance: r.distance,
+                            duration: r.duration,
+                            steps: r.legs?.[0]?.steps || [],
+                            riskScore: null,
+                            recommendation: null
+                        }));
+
+                        const detourScored = await Promise.all(detourProcessed.map(async (r) => {
+                            const score = await scoreRoute(r.geometry);
+                            return {
+                                ...r,
+                                riskScore: score.route_risk_score,
+                                recommendation: score.recommendation,
+                                route_risk_score: score.route_risk_score
+                            };
+                        }));
+
+                        // Add detour routes to candidate routes
+                        const allRoutes = [...candidateRoutes, ...detourScored];
+                        setCandidateRoutes(allRoutes);
+
+                        // Re-evaluate 
+                        let newBestSafeId = null;
+                        let newMinRisk = Infinity;
+                        let newFallback = null;
+
+                        allRoutes.forEach((r) => {
+                            const score = r.route_risk_score || 0;
+                            if (score < newMinRisk) {
+                                newMinRisk = score;
+                                newFallback = r.internalId;
+                            }
+                            if (r.recommendation !== 'HIGH_RISK') {
+                                newBestSafeId = r.internalId; // We found a safe detour!
+                            }
+                        });
+
+                        bestId = newBestSafeId || newFallback || bestId;
+                        scoredRoutes = allRoutes; // Update local reference for drawing
+                        console.log("Oracle: Detour calculation complete. Found safe?", !!newBestSafeId);
+
+                    } catch (detourErr) {
+                        console.error("Detour failed:", detourErr);
+                    }
+                }
+            }
+
             setSelectedRouteId(bestId);
 
             console.log("Oracle Identity Binding Set:");
