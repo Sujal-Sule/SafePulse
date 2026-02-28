@@ -108,7 +108,7 @@ async def health():
     }
 
 
-@app.get("/health", tags=["Health"])
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health_check():
     db_status = "ok"
     try:
@@ -119,7 +119,7 @@ async def health_check():
             await conn.execute(text("SELECT 1"))
     except Exception as e:
         db_status = f"error: {str(e)}"
-        
+
     return {
         "status": "ok",
         "database": db_status
