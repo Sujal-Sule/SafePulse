@@ -174,13 +174,7 @@ async def get_pending_reports(
         text("ST_Y(location::geometry)"),
         text("ST_X(location::geometry)")
     ).options(selectinload(RiskReport.reporter))
-    if current_user.role == UserRole.AUTHORITY:
-        q = q.where(
-            RiskReport.authority_id == current_user.id,
-            RiskReport.status == RiskReportStatus.PENDING,
-        )
-    else:
-        q = q.where(RiskReport.status == RiskReportStatus.PENDING)
+    q = q.where(RiskReport.status == RiskReportStatus.PENDING)
 
     result = await db.execute(q)
     rows = result.all()
