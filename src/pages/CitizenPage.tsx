@@ -100,6 +100,7 @@ export const CitizenPage: React.FC = () => {
     // Refs for live markers and citizen broadcast interval
     const guardianMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const citizenBroadcastRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const activeSosIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         if (user?.role === 'citizen') {
@@ -114,6 +115,9 @@ export const CitizenPage: React.FC = () => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'request_accepted') {
+                        // Filter messages by active SOS ID for direct requests
+                        if (activeSosIdRef.current && data.sos_id !== activeSosIdRef.current) return;
+
                         setAcceptedGuardian(data);
                         // Start broadcasting citizen live location every 3s
                         if (citizenBroadcastRef.current) clearInterval(citizenBroadcastRef.current);
@@ -186,7 +190,8 @@ export const CitizenPage: React.FC = () => {
                     );
                 });
             } catch (e) { }
-            await sendDirectRequest(guardianId, userLoc[1], userLoc[0], activeDestination.name, activeDestination.coords);
+            const res = await sendDirectRequest(guardianId, userLoc[1], userLoc[0], activeDestination.name, activeDestination.coords);
+            if (res.sos_id) activeSosIdRef.current = res.sos_id;
             setRequestedGuardians(prev => [...prev, guardianId]);
         } catch (error) {
             console.error(error);
@@ -512,7 +517,10 @@ export const CitizenPage: React.FC = () => {
                             )}
 
                             <button
-                                onClick={() => setIsSosActive(false)}
+                                onClick={() => {
+                                    setIsSosActive(false);
+                                    activeSosIdRef.current = null;
+                                }}
                                 className="w-full relative z-10 h-11 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white/50 hover:text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl flex items-center justify-center transition-all duration-300"
                             >
                                 Cancel Alert

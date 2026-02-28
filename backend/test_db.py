@@ -1,34 +1,47 @@
 import asyncio
-import asyncpg
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select, func, text
+from app.models import RiskZone
+from app.config.settings import get_settings
 
-async def test_pooler():
-    try:
-        conn = await asyncpg.connect("postgresql://postgres.avplsonmppbsjkpsqxsw:qHWn5AClqPc6gRdm@aws-1-ap-south-1.pooler.supabase.com:5432/postgres")
-        print("Pooler (aws-1) success!")
-        await conn.close()
-    except Exception as e:
-        print(f"Pooler (aws-1) failed: {e}")
+DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/safepulse"
+engine = create_async_engine(DATABASE_URL)
+AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-async def test_pooler_6543():
-    try:
-        conn = await asyncpg.connect("postgresql://postgres.avplsonmppbsjkpsqxsw:qHWn5AClqPc6gRdm@aws-1-ap-south-1.pooler.supabase.com:6543/postgres")
-        print("Pooler 6543 success!")
-        await conn.close()
-    except Exception as e:
-        print(f"Pooler 6543 failed: {e}")
+async def test():
+    settings = get_settings()
+    async with AsyncSessionLocal() as session:
+        # 1. Fetch all risk zones
+        print("--- Active Risk Zones ---")
+        stmt = select(RiskZone).where(RiskZone.active == True)
+        res = await session.execute(stmt)
+        zones = res.scalars().all()
+        for z in zones:
+            print(f"Zone: {z.id}, score: {z.risk_score}")
 
-async def test_direct():
-    try:
-        conn = await asyncpg.connect("postgresql://postgres:qHWn5AClqPc6gRdm@db.avplsonmppbsjkpsqxsw.supabase.co:5432/postgres")
-        print("Direct success!")
-        await conn.close()
-    except Exception as e:
-        print(f"Direct failed: {e}")
+        # 2. Test intersection with a known polyline 
+        # (This is a short line segment through roughly 73.40, 18.75)
+        coords = [(18.7537, 73.4068), (18.7580, 73.4150)]
+        line_wkt = "LINESTRING(" + ", ".join([f"{c[1]} {c[0]}" for c in coords]) + ")"
+        
+        stmt2 = select(RiskZone).where(
+            RiskZone.active == True,
+            func.ST_DWithin(
+                RiskZone.centroid,
+                func.ST_GeogFromText(line_wkt),
+                settings.RISK_CLUSTER_RADIUS_M
+            )
+        )
+        res2 = await session.execute(stmt2)
+        intersecting = res2.scalars().all()
+        
+        print(f"\n--- Intersecting Zones (Radius: {settings.RISK_CLUSTER_RADIUS_M}m) ---")
+        for z in intersecting:
+            print(f"Intersecting: {z.id} ({z.risk_level})")
+            
+        if not intersecting:
+            print("No intersections found for test route.")
 
-async def run_tests():
-    print("Testing connections...")
-    await test_pooler()
-    await test_pooler_6543()
-    await test_direct()
-
-asyncio.run(run_tests())
+if __name__ == "__main__":
+    asyncio.run(test())

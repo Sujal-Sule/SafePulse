@@ -71,7 +71,7 @@ export const triggerSOS = async (latitude: number, longitude: number): Promise<{
     }
 };
 
-export const sendDirectRequest = async (targetGuardianId: string, latitude: number, longitude: number, destination?: string, destination_coords?: [number, number]): Promise<{ status: string }> => {
+export const sendDirectRequest = async (targetGuardianId: string, latitude: number, longitude: number, destination?: string, destination_coords?: [number, number]): Promise<{ status: string, sos_id?: string }> => {
     try {
         const response = await fetch(API_BASE_URL + '/direct-request', {
             method: 'POST',

@@ -225,16 +225,30 @@ export const GuardianPage: React.FC = () => {
         }
         try {
             const token = authTokenRef.current || localStorage.getItem('safepulse_auth_token') || '';
-            // Accept via new geo-filtered SOS endpoint (row-locked, transactional)
-            const res = await fetch(`${BASE_URL}/sos/alert/${req.alert_id}/accept`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (!res.ok) {
-                const err = await res.json();
-                alert(err.detail || 'Failed to accept — already assigned.');
-                setIncomingRequests(prev => prev.filter(r => r.sos_id !== req.sos_id));
-                return;
+
+            if (req.alert_id) {
+                // Accept via new geo-filtered SOS endpoint (row-locked, transactional)
+                const res = await fetch(`${BASE_URL}/sos/alert/${req.alert_id}/accept`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    alert(err.detail || 'Failed to accept — already assigned.');
+                    setIncomingRequests(prev => prev.filter(r => r.sos_id !== req.sos_id));
+                    return;
+                }
+            } else {
+                // Accept normal direct citizen request
+                await acceptRequest(
+                    req.sos_id,
+                    user.id,
+                    user.name,
+                    user.phone || '',
+                    user.profile_image_url || null,
+                    locRef.current[1],
+                    locRef.current[0]
+                );
             }
 
             setActiveSosParams(req);

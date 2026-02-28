@@ -265,9 +265,10 @@ async def trigger_direct_request(payload: DirectRequestParams):
     """
     Trigger a direct support request to a specific guardian.
     """
+    sos_id = f"direct-{uuid.uuid4()}"
     await ws_manager.broadcast_guardian({
         "type": "direct_request",
-        "sos_id": f"direct-{uuid.uuid4()}",
+        "sos_id": sos_id,
         "user_id": "citizen-direct",
         "user_name": "Citizen Request",
         "lat": payload.latitude,
@@ -278,7 +279,7 @@ async def trigger_direct_request(payload: DirectRequestParams):
         "triggered_at": datetime.now(timezone.utc).isoformat(),
     })
     
-    return {"status": "Direct request sent"}
+    return {"status": "Direct request sent", "sos_id": sos_id}
 
 @router.post("/accept-request")
 async def accept_request(payload: AcceptRequestParams):
