@@ -193,6 +193,89 @@ export const scoreRoute = async (polyline: string) => {
     }
 };
 
+// ── Frontend-side danger zone intersection check ──────────────────────────
+// Haversine distance in meters between two [lat, lng] points
+export const haversineMeters = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371000; // earth radius in meters
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+export interface DangerZone {
+    latitude: number;
+    longitude: number;
+    radius: number;      // meters
+    risk_level: string;   // HIGH, MEDIUM, LOW
+}
+
+/**
+ * Check if a decoded polyline (array of [lat, lng]) passes within
+ * `zone.radius` meters of any danger zone centroid.
+ * Returns the list of zones the route intersects.
+ */
+export const routeIntersectsDangerZones = (
+    decodedCoords: [number, number][],   // [[lat, lng], ...]
+    dangerZones: DangerZone[],
+): DangerZone[] => {
+    const hitZones: DangerZone[] = [];
+
+    for (const zone of dangerZones) {
+        // Only flag HIGH and MEDIUM zones
+        if (zone.risk_level !== 'HIGH' && zone.risk_level !== 'MEDIUM' && zone.risk_level !== 'MODERATE') continue;
+
+        const checkRadius = zone.radius || 300; // default 300m
+        for (const [lat, lng] of decodedCoords) {
+            const dist = haversineMeters(lat, lng, zone.latitude, zone.longitude);
+            if (dist <= checkRadius) {
+                hitZones.push(zone);
+                break; // one point is enough to flag this zone
+            }
+        }
+    }
+    return hitZones;
+};
+
+/**
+ * Frontend-side route scoring using the already-fetched red zones.
+ * This is the RELIABLE fallback when backend scoring fails or returns incorrect results.
+ */
+export const scoreRouteLocally = (
+    encodedPolyline: string,
+    dangerZones: DangerZone[],
+): { recommendation: string; route_risk_score: number; intersecting_zones: DangerZone[] } => {
+    // polylineLib is imported at the top of MapContainer, we decode here using @mapbox/polyline
+    // We need to decode here. Import polyline decode.
+    // Actually, we'll accept decoded coords from caller to avoid importing polyline in mapService.
+    // But let's keep it self-contained and decode manually.
+    // Polyline precision 5 decode:
+    const coords: [number, number][] = [];
+    let index = 0, lat = 0, lng = 0;
+    while (index < encodedPolyline.length) {
+        let b: number, shift = 0, result = 0;
+        do { b = encodedPolyline.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+        lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+        shift = 0; result = 0;
+        do { b = encodedPolyline.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+        lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+        coords.push([lat / 1e5, lng / 1e5]);
+    }
+
+    const intersecting = routeIntersectsDangerZones(coords, dangerZones);
+    const isHighRisk = intersecting.length > 0;
+
+    return {
+        recommendation: isHighRisk ? 'HIGH_RISK' : 'SAFE',
+        route_risk_score: isHighRisk ? 100 : 0,
+        intersecting_zones: intersecting,
+    };
+};
+
 export const drawRoute = (map: mapboxgl.Map, geojson: any) => {
     // Clean up existing route first
     clearRoute(map);

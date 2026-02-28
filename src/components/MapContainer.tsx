@@ -13,8 +13,12 @@ import {
     MapUserItem,
     syncUserMarkers,
     fetchRoutes,
-    scoreRoute
+    scoreRoute,
+    scoreRouteLocally,
+    haversineMeters,
+    DangerZone
 } from '../services/mapService';
+import { fetchRedZones } from '../services/api';
 import polylineLib from '@mapbox/polyline';
 import { useAuth } from '../context/AuthContext';
 
@@ -30,7 +34,7 @@ interface ProcessedRoute {
     duration: number;
     steps?: any[];
     riskScore: number | null;
-    recommendation: 'SAFE' | 'HIGH_RISK' | null;
+    recommendation: string | null;
     route_risk_score?: number;
 }
 
@@ -430,9 +434,19 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
         setHasRoute(true);
 
         try {
+            // ── Step 0: Fetch danger zones for local scoring ──
+            const redZones = await fetchRedZones();
+            const dangerZones: DangerZone[] = redZones.map(z => ({
+                latitude: z.latitude,
+                longitude: z.longitude,
+                radius: z.radius || 500,
+                risk_level: z.risk_level,
+            }));
+            console.log(`Oracle: Loaded ${dangerZones.length} danger zones for local scoring`);
+
             const rawRoutes = await fetchRoutes(uLoc, destination);
 
-            // Step 1: Assign Stable Internal IDs
+            // ── Step 1: Assign Stable Internal IDs ──
             const processedRoutes: ProcessedRoute[] = rawRoutes.map((r: any) => ({
                 internalId: crypto.randomUUID(),
                 geometry: r.geometry,
@@ -443,133 +457,131 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
                 recommendation: null
             }));
 
-            // Step 2: After Risk Scoring
-            let scoredRoutes = await Promise.all(processedRoutes.map(async (r) => {
-                const score = await scoreRoute(r.geometry);
+            // ── Step 2: Score routes using FRONTEND-SIDE zone checking ──
+            let scoredRoutes = processedRoutes.map((r) => {
+                const localScore = scoreRouteLocally(r.geometry, dangerZones);
+                console.log(`Oracle: Route ${r.internalId.slice(0, 8)} → ${localScore.recommendation} (intersects ${localScore.intersecting_zones.length} zones)`);
                 return {
                     ...r,
-                    riskScore: score.route_risk_score,
-                    recommendation: score.recommendation,
-                    route_risk_score: score.route_risk_score
+                    riskScore: localScore.route_risk_score,
+                    recommendation: localScore.recommendation,
+                    route_risk_score: localScore.route_risk_score
                 };
-            }));
+            });
 
             setCandidateRoutes(scoredRoutes);
 
-            // Find the best route ID (Safety First)
-            let minSafeScore = Infinity;
+            // ── Step 3: Find the best safe route ──
             let bestSafeId: string | null = null;
-
-            let minRiskScore = Infinity;
+            let minSafeDist = Infinity;
             let fallbackId: string | null = null;
+            let minRiskScore = Infinity;
 
             scoredRoutes.forEach((r) => {
                 const score = r.route_risk_score || 0;
                 const isSafe = r.recommendation !== 'HIGH_RISK';
 
-                // Track the absolute least risky route as fallback
-                if (score < minRiskScore) {
+                if (score < minRiskScore || (score === minRiskScore && r.distance < (scoredRoutes.find(x => x.internalId === fallbackId)?.distance || Infinity))) {
                     minRiskScore = score;
                     fallbackId = r.internalId;
                 }
 
-                if (isSafe) {
-                    if (score < minSafeScore) {
-                        minSafeScore = score;
-                        bestSafeId = r.internalId;
-                    }
+                if (isSafe && r.distance < minSafeDist) {
+                    minSafeDist = r.distance;
+                    bestSafeId = r.internalId;
                 }
             });
 
-            // Step 3: Route Selection (ID Based Only)
             let bestId = bestSafeId || fallbackId;
 
-            // Step 4: Multi-pass Detour calculation
-            // If we found NO safe routes, try forcing the Oracle to take a detour
-            if (!bestSafeId && candidateRoutes.length > 0) {
-                // Find the first high risk segment from the safest (fallback) route
-                const fallbackRoute = candidateRoutes.find(r => r.internalId === fallbackId);
-                const hrs = fallbackRoute?.high_risk_segments?.[0];
+            // ── Step 4: Detour if ALL routes are HIGH_RISK ──
+            if (!bestSafeId && dangerZones.length > 0) {
+                console.log('Oracle: All routes are HIGH_RISK. Generating detour waypoints...');
 
-                if (hrs && hrs.start && hrs.end) {
-                    console.log("Oracle: No safe routes found. Calculating detour...");
+                // Find the danger zone(s) that each route hits
+                // Use the first intersecting zone from the fallback route
+                const fallbackRoute = scoredRoutes.find(r => r.internalId === fallbackId);
+                if (fallbackRoute) {
+                    const localResult = scoreRouteLocally(fallbackRoute.geometry, dangerZones);
+                    const hitZone = localResult.intersecting_zones[0];
 
-                    // Simple geometrical detour: find the midpoint of the high risk segment,
-                    // and offset it by ~500m perpendicularly to force Mapbox to route around it.
-                    const midLat = (hrs.start.lat + hrs.end.lat) / 2;
-                    const midLng = (hrs.start.lng + hrs.end.lng) / 2;
+                    if (hitZone) {
+                        // Calculate waypoints on BOTH sides of the danger zone
+                        // perpendicular to the line from start to destination
+                        const dx = destination[0] - uLoc[0]; // lng diff
+                        const dy = destination[1] - uLoc[1]; // lat diff
+                        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const perpLng = -dy / len;
+                        const perpLat = dx / len;
 
-                    // Vector from start to end
-                    const dLat = hrs.end.lat - hrs.start.lat;
-                    const dLng = hrs.end.lng - hrs.start.lng;
+                        // Offset ~800m (roughly 0.0072 degrees)
+                        const offset = 0.008;
 
-                    // Normalize vector
-                    const len = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
-                    const nx = dLng / len;
-                    const ny = dLat / len;
+                        const waypoints: [number, number][][] = [
+                            [[hitZone.longitude + perpLng * offset, hitZone.latitude + perpLat * offset]],
+                            [[hitZone.longitude - perpLng * offset, hitZone.latitude - perpLat * offset]],
+                        ];
 
-                    // Perpendicular vector (-ny, nx) scaled to ~500m (roughly 0.0045 degrees)
-                    const offset = 0.005;
-                    const detourLat = midLat - nx * offset;
-                    const detourLng = midLng + ny * offset;
+                        for (const wp of waypoints) {
+                            try {
+                                const detourRaw = await fetchRoutes(uLoc, destination, wp);
+                                const detourProcessed: ProcessedRoute[] = detourRaw.map((r: any) => ({
+                                    internalId: crypto.randomUUID(),
+                                    geometry: r.geometry,
+                                    distance: r.distance,
+                                    duration: r.duration,
+                                    steps: r.legs?.[0]?.steps || [],
+                                    riskScore: null,
+                                    recommendation: null
+                                }));
 
-                    try {
-                        const detourRaw = await fetchRoutes(uLoc, destination, [[detourLng, detourLat]]);
-                        const detourProcessed: ProcessedRoute[] = detourRaw.map((r: any) => ({
-                            internalId: crypto.randomUUID(),
-                            geometry: r.geometry,
-                            distance: r.distance,
-                            duration: r.duration,
-                            steps: r.legs?.[0]?.steps || [],
-                            riskScore: null,
-                            recommendation: null
-                        }));
+                                const detourScored = detourProcessed.map((r) => {
+                                    const ls = scoreRouteLocally(r.geometry, dangerZones);
+                                    console.log(`Oracle: Detour route ${r.internalId.slice(0, 8)} → ${ls.recommendation}`);
+                                    return {
+                                        ...r,
+                                        riskScore: ls.route_risk_score,
+                                        recommendation: ls.recommendation,
+                                        route_risk_score: ls.route_risk_score
+                                    };
+                                });
 
-                        const detourScored = await Promise.all(detourProcessed.map(async (r) => {
-                            const score = await scoreRoute(r.geometry);
-                            return {
-                                ...r,
-                                riskScore: score.route_risk_score,
-                                recommendation: score.recommendation,
-                                route_risk_score: score.route_risk_score
-                            };
-                        }));
-
-                        // Add detour routes to candidate routes
-                        const allRoutes = [...candidateRoutes, ...detourScored];
-                        setCandidateRoutes(allRoutes);
-
-                        // Re-evaluate 
-                        let newBestSafeId = null;
-                        let newMinRisk = Infinity;
-                        let newFallback = null;
-
-                        allRoutes.forEach((r) => {
-                            const score = r.route_risk_score || 0;
-                            if (score < newMinRisk) {
-                                newMinRisk = score;
-                                newFallback = r.internalId;
+                                scoredRoutes = [...scoredRoutes, ...detourScored];
+                            } catch (e) {
+                                console.warn('Oracle: Detour waypoint failed', e);
                             }
-                            if (r.recommendation !== 'HIGH_RISK') {
-                                newBestSafeId = r.internalId; // We found a safe detour!
+                        }
+
+                        // Re-evaluate all routes
+                        setCandidateRoutes(scoredRoutes);
+                        bestSafeId = null;
+                        minSafeDist = Infinity;
+                        fallbackId = null;
+                        minRiskScore = Infinity;
+
+                        scoredRoutes.forEach((r) => {
+                            const score = r.route_risk_score || 0;
+                            if (score < minRiskScore) {
+                                minRiskScore = score;
+                                fallbackId = r.internalId;
+                            }
+                            if (r.recommendation !== 'HIGH_RISK' && r.distance < minSafeDist) {
+                                minSafeDist = r.distance;
+                                bestSafeId = r.internalId;
                             }
                         });
 
-                        bestId = newBestSafeId || newFallback || bestId;
-                        scoredRoutes = allRoutes; // Update local reference for drawing
-                        console.log("Oracle: Detour calculation complete. Found safe?", !!newBestSafeId);
-
-                    } catch (detourErr) {
-                        console.error("Detour failed:", detourErr);
+                        bestId = bestSafeId || fallbackId;
+                        console.log('Oracle: After detour → safe route found?', !!bestSafeId);
                     }
                 }
             }
 
             setSelectedRouteId(bestId);
 
-            console.log("Oracle Identity Binding Set:");
-            console.log(" - Destination:", label || "Map Click");
-            console.log(" - Initial Selection ID:", bestId);
+            console.log('Oracle Identity Binding Set:');
+            console.log(' - Destination:', label || 'Map Click');
+            console.log(' - Initial Selection ID:', bestId);
 
             if (destMarkerRef.current) {
                 destMarkerRef.current.remove();
