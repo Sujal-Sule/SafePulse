@@ -145,8 +145,16 @@ export const syncUserMarkers = (
 
 // --- Routing Services ---
 
-export const fetchRoutes = async (start: [number, number], end: [number, number]): Promise<any[]> => {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=polyline&overview=full&alternatives=true&steps=true&access_token=${mapboxgl.accessToken}`;
+export const fetchRoutes = async (start: [number, number], end: [number, number], waypoints?: [number, number][]): Promise<any[]> => {
+    let coordinates = `${start[0]},${start[1]}`;
+    if (waypoints && waypoints.length > 0) {
+        waypoints.forEach(wp => {
+            coordinates += `;${wp[0]},${wp[1]}`;
+        });
+    }
+    coordinates += `;${end[0]},${end[1]}`;
+
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=polyline&overview=full&alternatives=true&steps=true&access_token=${mapboxgl.accessToken}`;
 
     try {
         const response = await fetch(url);

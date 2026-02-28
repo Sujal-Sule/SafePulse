@@ -457,22 +457,32 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
             setCandidateRoutes(scoredRoutes);
 
             // Find the best route ID (Safety First)
-            let minScore = Infinity;
-            let bestId: string | null = null;
+            let minSafeScore = Infinity;
+            let bestSafeId: string | null = null;
+
+            let minRiskScore = Infinity;
+            let fallbackId: string | null = null;
 
             scoredRoutes.forEach((r) => {
                 const score = r.route_risk_score || 0;
                 const isSafe = r.recommendation !== 'HIGH_RISK';
 
+                // Track the absolute least risky route as fallback
+                if (score < minRiskScore) {
+                    minRiskScore = score;
+                    fallbackId = r.internalId;
+                }
+
                 if (isSafe) {
-                    if (score < minScore) {
-                        minScore = score;
-                        bestId = r.internalId;
+                    if (score < minSafeScore) {
+                        minSafeScore = score;
+                        bestSafeId = r.internalId;
                     }
                 }
             });
 
             // Step 3: Route Selection (ID Based Only)
+            const bestId = bestSafeId || fallbackId;
             setSelectedRouteId(bestId);
 
             console.log("Oracle Identity Binding Set:");
