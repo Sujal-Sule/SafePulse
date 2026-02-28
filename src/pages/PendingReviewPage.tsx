@@ -1,9 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const PendingReviewPage: React.FC = () => {
     const { logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleSignOut = () => {
+        logout();
+        navigate('/');
+    };
 
     return (
         <div className="absolute inset-0 flex items-center justify-center p-6 bg-[#050505] text-[#f5f5f5] z-50">
@@ -31,7 +38,7 @@ export const PendingReviewPage: React.FC = () => {
                         Check Status
                     </button>
                     <button
-                        onClick={logout}
+                        onClick={handleSignOut}
                         className="flex-1 py-3 rounded-xl bg-primary text-[#050505] hover:bg-primary/90 transition-colors text-sm font-medium"
                     >
                         Sign Out
