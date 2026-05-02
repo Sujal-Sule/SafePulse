@@ -32,7 +32,7 @@ export const GuardianPage: React.FC = () => {
 
     const [nearbyGuardians, setNearbyGuardians] = useState<any[]>([]);
     const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
-    const locRef = useRef<[number, number]>([73.4068, 18.7537]);
+    const locRef = useRef<[number, number]>([75.8577, 22.7196]);
     const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const citizenMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const guardianBroadcastRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -173,7 +173,7 @@ export const GuardianPage: React.FC = () => {
             const loadGuardians = async () => {
                 try {
                     const data = await fetchMapData();
-                    let userLoc = [73.4068, 18.7537]; // Default Lonavala
+                    let userLoc = [75.8577, 22.7196]; // Default Indore
                     try {
                         userLoc = await getUserLocation();
                     } catch (e) {
@@ -206,7 +206,7 @@ export const GuardianPage: React.FC = () => {
 
     const handleDirectRequest = async (guardianId: string) => {
         try {
-            let userLoc = [73.4068, 18.7537];
+            let userLoc = [75.8577, 22.7196];
             try { userLoc = await getUserLocation(); } catch (e) { }
             await sendDirectRequest(guardianId, userLoc[1], userLoc[0]);
             alert('Support request sent to guardian!');

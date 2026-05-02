@@ -45,7 +45,7 @@ export const ReportPage: React.FC = () => {
     const { user } = useAuth();
     const isAuthority = user?.role === 'authority' || user?.role === 'admin';
 
-    const DEFAULT_LOC: [number, number] = [73.4068, 18.7537]; // Lonavala center fallback
+    const DEFAULT_LOC: [number, number] = [75.8577, 22.7196]; // Indore center fallback
 
     useEffect(() => {
         setMapMode('report');

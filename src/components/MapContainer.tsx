@@ -148,7 +148,7 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
         if (!mapContainer.current) return;
 
         const setupMap = async () => {
-            let center: [number, number] = [73.4068, 18.7537]; // Default: Lonavala
+            let center: [number, number] = [75.8577, 22.7196]; // Default: Indore
 
             try {
                 const location = await getUserLocation();
@@ -649,9 +649,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
 
         if (mode === 'alerts') {
             const MOCK_WARNINGS = [
-                { id: 1, type: "Crowd Disturbance", time: "10m ago", desc: "Large unauthorized gathering reported near Lonavala market.", lat: 18.7537, lng: 73.4068 },
-                { id: 2, type: "Suspicious Activity", time: "25m ago", desc: "Multiple reports of lingering suspect near ATM.", lat: 18.7580, lng: 73.4150 },
-                { id: 3, type: "Emergency SOS", time: "1h ago", desc: "Citizen initiated SOS from dark alley.", lat: 18.7490, lng: 73.4020 }
+                { id: 1, type: "Crowd Disturbance", time: "10m ago", desc: "Large unauthorized gathering reported near Indore market.", lat: 22.7196, lng: 75.8577 },
+                { id: 2, type: "Suspicious Activity", time: "25m ago", desc: "Multiple reports of lingering suspect near ATM.", lat: 22.7240, lng: 75.8660 },
+                { id: 3, type: "Emergency SOS", time: "1h ago", desc: "Citizen initiated SOS from dark alley.", lat: 22.7150, lng: 75.8530 }
             ];
 
             MOCK_WARNINGS.forEach(warn => {
@@ -677,9 +677,9 @@ export const MapContainer: React.FC<MapContainerProps> = ({ mode, routingProfile
                 warningMarkersRef.current.push(marker);
             });
 
-            // Fly to Lonavala for alerts
+            // Fly to Indore for alerts
             map.current.flyTo({
-                center: [73.4068, 18.7537],
+                center: [75.8577, 22.7196],
                 zoom: 13,
                 duration: 1500
             });

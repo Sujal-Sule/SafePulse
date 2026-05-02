@@ -10,9 +10,9 @@ engine = create_async_engine(DATABASE_URL)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 async def test():
-    # Lonavala coordinates: approx 18.7537, 73.4068
+    # Indore coordinates: approx 22.7196, 75.8577
     # Let's create a dummy route near there
-    points = [(18.7537, 73.4068), (18.7550, 73.4100)]
+    points = [(22.7196, 75.8577), (22.7210, 75.8600)]
     encoded = polyline.encode(points)
     
     async with AsyncSessionLocal() as session:

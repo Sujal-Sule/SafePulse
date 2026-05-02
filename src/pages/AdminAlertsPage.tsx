@@ -7,9 +7,9 @@ interface AdminPageContext {
 }
 
 const MOCK_WARNINGS = [
-    { id: 1, type: "Crowd Disturbance", time: "10m ago", desc: "Large unauthorized gathering reported near Lonavala market.", lat: 18.7537, lng: 73.4068 },
-    { id: 2, type: "Suspicious Activity", time: "25m ago", desc: "Multiple reports of lingering suspect near ATM.", lat: 18.7580, lng: 73.4150 },
-    { id: 3, type: "Emergency SOS", time: "1h ago", desc: "Citizen initiated SOS from dark alley.", lat: 18.7490, lng: 73.4020 }
+    { id: 1, type: "Crowd Disturbance", time: "10m ago", desc: "Large unauthorized gathering reported near Indore market.", lat: 22.7196, lng: 75.8577 },
+    { id: 2, type: "Suspicious Activity", time: "25m ago", desc: "Multiple reports of lingering suspect near ATM.", lat: 22.7240, lng: 75.8660 },
+    { id: 3, type: "Emergency SOS", time: "1h ago", desc: "Citizen initiated SOS from dark alley.", lat: 22.7150, lng: 75.8530 }
 ];
 
 export const AdminAlertsPage: React.FC = () => {

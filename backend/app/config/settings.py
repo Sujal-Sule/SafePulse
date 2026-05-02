@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     CHECKIN_TIMEOUT_MINUTES: int = 30
 
     # ── NCRB Baseline Integration ────────────────────────
-    NCRB_BASELINE_CITY: str = "Lonavala"
+    NCRB_BASELINE_CITY: str = "Indore"
     NCRB_REALTIME_WEIGHT: float = 0.6       # Weight for real-time report scores
     NCRB_BASELINE_WEIGHT: float = 0.4       # Weight for NCRB baseline scores
     NCRB_ROUTE_RISK_THRESHOLD: int = 40     # Baseline index above which route bias kicks in

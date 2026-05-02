@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl';
 // Replace with your actual token or env variable
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
 
-const DEFAULT_CENTER: [number, number] = [73.4068, 18.7537]; // Lonavala
+const DEFAULT_CENTER: [number, number] = [75.8577, 22.7196]; // Indore
 const API = import.meta.env.VITE_API_URL ?? '';
 
 // --- Location Services ---
@@ -343,7 +343,7 @@ export const clearRoute = (map: mapboxgl.Map) => {
 // --- Dynamic Risk & Safe Zones ---
 import { fetchRedZones, fetchBaselineRisk } from './api';
 
-export const addSafetyZones = async (map: mapboxgl.Map, center: [number, number], city: string = 'Lonavala') => {
+export const addSafetyZones = async (map: mapboxgl.Map, center: [number, number], city: string = 'Indore') => {
     // 1. Fetch real data from backend
     const [dynamicRiskZones, baselineRiskData] = await Promise.all([
         fetchRedZones(),
@@ -378,15 +378,15 @@ export const addSafetyZones = async (map: mapboxgl.Map, center: [number, number]
     // --- 1. BASELINE LAYER (VIOLET/PURPLE) ---
     // Generate a grid of points for the baseline layer to cover the city evenly
     const baselineFeatures: any[] = [];
-    // Lonavala center for baseline grid spreading
-    const lonavalaCenter = [73.4068, 18.7537];
+    // Indore center for baseline grid spreading
+    const indoreCenter = [75.8577, 22.7196];
     const spread = 0.05; // Roughly 5km spacing
 
     for (let i = -2; i <= 2; i++) {
         for (let j = -2; j <= 2; j++) {
             baselineFeatures.push({
                 type: 'Feature',
-                geometry: { type: 'Point', coordinates: [lonavalaCenter[0] + (i * spread), lonavalaCenter[1] + (j * spread)] },
+                geometry: { type: 'Point', coordinates: [indoreCenter[0] + (i * spread), indoreCenter[1] + (j * spread)] },
                 properties: { intensity: Math.max(0.1, normalizedBaseline) }
             });
         }
@@ -489,7 +489,7 @@ export const addSafetyZones = async (map: mapboxgl.Map, center: [number, number]
 // In-memory cache so Overpass is only hit once per session
 let _safetySpotCache: GeoJSON.FeatureCollection | null = null;
 
-const LONAVALA_BBOX = '18.70,73.36,18.82,73.48'; // south,west,north,east — Lonavala
+const INDORE_BBOX = '22.65,75.75,22.80,75.95'; // south,west,north,east — Indore
 
 function osmAmenityLabel(amenity: string | undefined): string {
     switch (amenity) {
@@ -505,8 +505,8 @@ async function fetchSafetySpots(): Promise<GeoJSON.FeatureCollection> {
 
     const overpassQuery = `[out:json][timeout:25];
 (
-  node["amenity"~"police|hospital|fire_station"](${LONAVALA_BBOX});
-  way["amenity"~"police|hospital|fire_station"](${LONAVALA_BBOX});
+  node["amenity"~"police|hospital|fire_station"](${INDORE_BBOX});
+  way["amenity"~"police|hospital|fire_station"](${INDORE_BBOX});
 );
 out center;`;
 

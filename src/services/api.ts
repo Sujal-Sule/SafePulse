@@ -20,7 +20,7 @@ export interface BaselineRisk {
     weighted_score: number;
 }
 
-export const fetchBaselineRisk = async (city: string = 'Lonavala'): Promise<BaselineRisk[]> => {
+export const fetchBaselineRisk = async (city: string = 'Indore'): Promise<BaselineRisk[]> => {
     try {
         const response = await fetch(API_BASE_URL + '/baseline-risk?city=' + encodeURIComponent(city));
         if (!response.ok) {

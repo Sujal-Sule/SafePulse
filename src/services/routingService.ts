@@ -23,7 +23,7 @@ export interface DangerZone {
     geometry: any; // GeoJSON Polygon
 }
 
-// --- Mock Danger Zones (Lonavala) ---
+// --- Mock Danger Zones (Indore) ---
 export const dangerZones: any = {
     type: "FeatureCollection",
     features: [
@@ -33,11 +33,11 @@ export const dangerZones: any = {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [73.400, 18.748],
-                    [73.410, 18.748],
-                    [73.410, 18.740],
-                    [73.400, 18.740],
-                    [73.400, 18.748]
+                    [75.850, 22.715],
+                    [75.860, 22.715],
+                    [75.860, 22.705],
+                    [75.850, 22.705],
+                    [75.850, 22.715]
                 ]]
             }
         },
@@ -47,11 +47,11 @@ export const dangerZones: any = {
             geometry: {
                 type: "Polygon",
                 coordinates: [[
-                    [73.415, 18.762],
-                    [73.425, 18.762],
-                    [73.425, 18.754],
-                    [73.415, 18.754],
-                    [73.415, 18.762]
+                    [75.865, 22.725],
+                    [75.875, 22.725],
+                    [75.875, 22.715],
+                    [75.865, 22.715],
+                    [75.865, 22.725]
                 ]]
             }
         }
