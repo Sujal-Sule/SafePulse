@@ -22,7 +22,7 @@ const VisionSection = () => {
 
       {/* Large ambient glow */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none"
         animate={{ opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       >

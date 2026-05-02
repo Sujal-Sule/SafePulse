@@ -19,7 +19,7 @@ const HeroSection = () => {
     >
       {/* Ambient violet orb */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full pointer-events-none animate-ambient"
+        className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full pointer-events-none animate-ambient"
         style={{
           background: "radial-gradient(circle, rgba(183,135,245,0.10) 0%, rgba(183,135,245,0.03) 40%, transparent 70%)",
           filter: "blur(40px)",
@@ -30,7 +30,7 @@ const HeroSection = () => {
       <ParticleField />
 
       {/* City grid SVG background */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+      <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none opacity-20">
         <CityGridSVG />
       </div>
 

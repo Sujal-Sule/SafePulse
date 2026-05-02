@@ -16,7 +16,7 @@ const PathFinderSection = () => {
     >
       {/* Ambient orb right */}
       <div
-        className="absolute right-0 top-1/2 w-[500px] h-[500px] pointer-events-none"
+        className="hidden md:block absolute right-0 top-1/2 w-[500px] h-[500px] pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(183,135,245,0.07) 0%, transparent 70%)",
           filter: "blur(50px)",

@@ -15,7 +15,7 @@ const FailsafeSection = () => {
     >
       {/* Pulsing violet glow center */}
       <motion.div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
+        className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none"
         animate={{ opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       >

@@ -21,7 +21,7 @@ const OracleSection = () => {
     >
       {/* Ambient orb top left */}
       <div
-        className="absolute top-0 left-0 w-[600px] h-[600px] pointer-events-none"
+        className="hidden md:block absolute top-0 left-0 w-[600px] h-[600px] pointer-events-none"
         style={{
           background: "radial-gradient(circle, rgba(183,135,245,0.07) 0%, transparent 70%)",
           filter: "blur(60px)",

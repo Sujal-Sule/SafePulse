@@ -14,7 +14,10 @@ const ParticleField = () => {
 
     const particles: { x: number; y: number; size: number; speedX: number; speedY: number; opacity: number }[] = [];
 
-    for (let i = 0; i < 60; i++) {
+    const isMobile = window.innerWidth < 768;
+    const particleCount = isMobile ? 15 : 60;
+
+    for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,

@@ -18,7 +18,7 @@ const AnchorSection = () => {
     >
       {/* Ambient bottom */}
       <div
-        className="absolute bottom-0 left-1/2 w-[700px] h-[400px] pointer-events-none"
+        className="hidden md:block absolute bottom-0 left-1/2 w-[700px] h-[400px] pointer-events-none"
         style={{
           background: "radial-gradient(ellipse, rgba(183,135,245,0.06) 0%, transparent 70%)",
           filter: "blur(60px)",
